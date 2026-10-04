@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lin.elm.mapper.SeckillMapper">
+
+    <resultMap id="seckillResultMap" type="com.lin.elm.po.Seckill">
+        <id column="seckillId" property="seckillId"/>
+        <result column="foodId" property="foodId"/>
+        <result column="businessId" property="businessId"/>
+        <result column="seckillPrice" property="seckillPrice"/>
+        <result column="originalPrice" property="originalPrice"/>
+        <result column="seckillStock" property="seckillStock"/>
+        <result column="startTime" property="startTime"/>
+        <result column="endTime" property="endTime"/>
+        <result column="status" property="status"/>
+
+        <association property="food" javaType="com.lin.elm.po.Food">
+            <id column="f_foodId" property="foodId"/>
+            <result column="f_foodName" property="foodName"/>
+            <result column="f_foodExplain" property="foodExplain"/>
+            <result column="f_foodImg" property="foodImg"/>
+            <result column="f_foodPrice" property="foodPrice"/>
+        </association>
+        <association property="business" javaType="com.lin.elm.po.Business">
+            <id column="b_businessId" property="businessId"/>
+            <result column="b_businessName" property="businessName"/>
+            <result column="b_businessImg" property="businessImg"/>
+            <result column="b_businessAddress" property="businessAddress"/>
+            <result column="b_deliveryPrice" property="deliveryPrice"/>
+        </association>
+    </resultMap>
+
+    <sql id="seckillColumns">
+        s.seckillId, s.foodId, s.businessId, s.seckillPrice, s.originalPrice,
+        s.seckillStock, s.startTime, s.endTime, s.status,
+        f.foodId      as f_foodId,
+        f.foodName    as f_foodName,
+        f.foodExplain as f_foodExplain,
+        f.foodImg     as f_foodImg,
+        f.foodPrice   as f_foodPrice,
+        b.businessId      as b_businessId,
+        b.businessName    as b_businessName,
+        b.businessImg     as b_businessImg,
+        b.businessAddress as b_businessAddress,
+        b.deliveryPrice   as b_deliveryPrice
+    </sql>
+
+    <select id="listOnSale" resultMap="seckillResultMap">
+        select <include refid="seckillColumns"/>
+        from seckill s
+        left join food f on f.foodId = s.foodId
+        left join business b on b.businessId = s.businessId
+        where s.status = 1
+        order by s.seckillId
+    </select>
+
+    <select id="getById" parameterType="java.lang.Integer" resultMap="seckillResultMap">
+        select <include refid="seckillColumns"/>
+        from seckill s
+        left join food f on f.foodId = s.foodId
+        left join business b on b.businessId = s.businessId
+        where s.seckillId = #{seckillId}
+    </select>
+
+</mapper>

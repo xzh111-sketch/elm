@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lin.elm.mapper.OrdersMapper">
+
+    <resultMap id="orderstResultMap" type="com.lin.elm.po.Orders">
+        <id column="orderId" property="orderId"/>
+        <result column="userId" property="userId"/>
+        <result column="businessId" property="businessId"/>
+        <result column="orderDate" property="orderDate"/>
+        <result column="orderTotal" property="orderTotal"/>
+        <result column="daId" property="daId"/>
+        <result column="orderState" property="orderState"/>
+        <result column="tradeNo" property="tradeNo"/>
+
+        <!--
+          商家和订单明细都改成 join 一次查完（原来是 select 子查询，
+          查 N 个订单会额外发 N 条查商家 + N 条查明细 + 每条明细再查菜品，典型的 N+1）
+        -->
+        <association property="business" javaType="com.lin.elm.po.Business">
+            <id column="b_businessId" property="businessId"/>
+            <result column="b_businessName" property="businessName"/>
+            <result column="b_businessImg" property="businessImg"/>
+            <result column="b_businessAddress" property="businessAddress"/>
+            <result column="b_businessExplain" property="businessExplain"/>
+            <result column="b_orderTypeId" property="orderTypeId"/>
+            <result column="b_starPrice" property="starPrice"/>
+            <result column="b_deliveryPrice" property="deliveryPrice"/>
+            <result column="b_remarks" property="remarks"/>
+        </association>
+        <collection property="orderDetailet" ofType="com.lin.elm.po.OrderDetailet">
+            <id column="od_odId" property="odId"/>
+            <result column="od_orderId" property="orderId"/>
+            <result column="od_foodId" property="foodId"/>
+            <result column="od_quantity" property="quantity"/>
+            <association property="food" javaType="com.lin.elm.po.Food">
+                <id column="f_foodId" property="foodId"/>
+                <result column="f_foodName" property="foodName"/>
+                <result column="f_foodExplain" property="foodExplain"/>
+                <result column="f_foodImg" property="foodImg"/>
+                <result column="f_foodPrice" property="foodPrice"/>
+                <result column="f_businessId" property="businessId"/>
+                <result column="f_remarks" property="remarks"/>
+            </association>
+        </collection>
+    </resultMap>
+    <insert id="saveOrders"
+            parameterType="com.lin.elm.po.Orders"
+            useGeneratedKeys="true"
+            keyProperty="orderId">
+        INSERT INTO orders
+            (userId, businessId, orderDate, orderTotal, daId, orderState)
+        VALUES
+            (#{userId}, #{businessId}, #{orderDate}, #{orderTotal}, #{daId}, #{orderState})
+    </insert>
+
+    <!-- 订单 + 商家 + 明细 + 菜品，一条 join 查完 -->
+    <sql id="ordersJoinColumns">
+        o.orderId, o.userId, o.businessId, o.orderDate, o.orderTotal, o.daId, o.orderState, o.tradeNo,
+        b.businessId      as b_businessId,
+        b.businessName    as b_businessName,
+        b.businessImg     as b_businessImg,
+        b.businessAddress as b_businessAddress,
+        b.businessExplain as b_businessExplain,
+        b.orderTypeId     as b_orderTypeId,
+        b.starPrice       as b_starPrice,
+        b.deliveryPrice   as b_deliveryPrice,
+        b.remarks         as b_remarks,
+        od.odId     as od_odId,
+        od.orderId  as od_orderId,
+        od.foodId   as od_foodId,
+        od.quantity as od_quantity,
+        f.foodId      as f_foodId,
+        f.foodName    as f_foodName,
+        f.foodExplain as f_foodExplain,
+        f.foodImg     as f_foodImg,
+        f.foodPrice   as f_foodPrice,
+        f.businessId  as f_businessId,
+        f.remarks     as f_remarks
+    </sql>
+
+    <select id="getOrdersById" parameterType="java.lang.Integer" resultMap="orderstResultMap">
+        select <include refid="ordersJoinColumns"/>
+        from orders o
+        left join business b on b.businessId = o.businessId
+        left join orderDetailet od on od.orderId = o.orderId
+        left join food f on f.foodId = od.foodId
+        where o.orderId = #{orderId}
+    </select>
+
+    <select id="listOrdersByUserId" resultMap="orderstResultMap">
+        select <include refid="ordersJoinColumns"/>
+        from (
+            <!-- 关键：limit 只能作用在"订单"上，所以先分页再 join。
+                 如果直接 join 后 limit，一个订单有几条明细就占几行，分页会错乱（重复/漏单） -->
+            select * from orders
+            where userId = #{userId}
+            <if test="orderState != null">
+                and orderState = #{orderState}
+            </if>
+            order by orderId desc
+            limit #{offset}, #{pageSize}
+        ) o
+        left join business b on b.businessId = o.businessId
+        left join orderDetailet od on od.orderId = o.orderId
+        left join food f on f.foodId = od.foodId
+        order by o.orderId desc
+    </select>
+
+    <select id="countOrdersByUserId" resultType="int">
+        select count(*) from orders
+        where userId = #{userId}
+        <if test="orderState != null">
+            and orderState = #{orderState}
+        </if>
+    </select>
+
+    <update id="updateOrderState">
+        update orders set orderState=#{orderState} where orderId=#{orderId}
+    </update>
+
+    <update id="updateTradeNo">
+        update orders set tradeNo=#{tradeNo} where orderId=#{orderId}
+    </update>
+
+</mapper>

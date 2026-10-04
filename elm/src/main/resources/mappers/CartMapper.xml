@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lin.elm.mapper.CartMapper">
+
+    <resultMap id="cartResultMap" type="com.lin.elm.po.Cart">
+        <id column="cartId" property="cartId"/>
+        <result column="foodId" property="foodId"/>
+        <result column="businessId" property="businessId"/>
+        <result column="userId" property="userId"/>
+        <result column="quantity" property="quantity"/>
+
+        <!-- 关联 Food（要求 FoodMapper 有 getFoodById 方法） -->
+        <association property="food"
+                     javaType="com.lin.elm.po.Food"
+                     select="com.lin.elm.mapper.FoodMapper.getFoodById"
+                     column="foodId"/>
+
+        <!-- 关联 Business（要求 BusinessMapper 有 getBusinessById 方法） -->
+        <association property="business"
+                     javaType="com.lin.elm.po.Business"
+                     select="com.lin.elm.mapper.BusinessMapper.getBusinessById"
+                     column="businessId"/>
+    </resultMap>
+
+    <!-- id 必须与接口方法名 listCart 完全一致（小写 l） -->
+    <select id="listCart"
+            parameterType="com.lin.elm.po.Cart"
+            resultMap="cartResultMap">
+        select * from cart
+        where userId = #{userId}
+        <if test="businessId != null and businessId != ''">
+          and businessId = #{businessId}
+        </if>
+    </select>
+    <delete id="removeCart" parameterType="com.lin.elm.po.Cart">
+        delete from cart
+        <where>
+            <if test="cartId!=null and cartId!=''">
+                cartId=#{cartId}
+            </if>
+            <if test="cartId==null or cartId==''">
+                userId=#{userId} and businessId=#{businessId}
+                <if test="foodId!=null and foodId!=''">
+                    and foodId=#{foodId}
+                </if>
+            </if>
+        </where>
+    </delete>
+
+</mapper>

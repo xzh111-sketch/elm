@@ -1,0 +1,22 @@
+# ================= 后端（Maven / SpringBoot）=================
+elm/target/
+*.class
+*.log
+
+# 本地私密配置（含数据库密码、支付宝私钥、DeepSeek Key），绝不提交
+elm/src/main/resources/application-local.yml
+
+# ================= 前端（Vue）=================
+elmclient/node_modules/
+elmclient/dist/
+
+# ================= IDE / 系统 =================
+.idea/
+*.iml
+.vscode/
+.DS_Store
+
+# ================= 其他垃圾文件 =================
+erl_crash.dump
+dump.rdb
+*.tmp

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lin.elm.mapper.OrderDetailetMapper">
+
+    <resultMap id="orderDetailetResultMap" type="com.lin.elm.po.OrderDetailet">
+        <id column="odId" property="odId"/>
+        <result column="orderId" property="orderId"/>
+        <result column="foodId" property="foodId"/>
+        <result column="quantity" property="quantity"/>
+
+        <!-- 关联-->
+        <association property="food"
+                     javaType="com.lin.elm.po.Food"
+                     select="com.lin.elm.mapper.FoodMapper.getFoodById"
+                     column="foodId"/>
+    </resultMap>
+
+    <select id="listOrderDetailetByOrderId" parameterType="java.lang.Integer" resultMap="orderDetailetResultMap">
+        select * from orderDetailet where orderId=#{orderId}
+    </select>
+    <insert id="saveOrderDetailet" parameterType="java.util.List">
+        insert into orderDetailet (orderId, foodId, quantity)
+        values
+        <foreach collection="list" item="od" separator=",">
+            (#{od.orderId}, #{od.foodId}, #{od.quantity})
+        </foreach>
+    </insert>
+</mapper>

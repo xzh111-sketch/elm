@@ -1,0 +1,225 @@
+<template>
+  <div class="wrapper">
+    <!-- header部分 -->
+    <header>
+      <p>编辑送货地址</p>
+    </header>
+
+    <!-- 表单部分 -->
+    <ul class="form-box">
+      <li>
+        <div class="title">联系人：</div>
+        <div class="content">
+          <input
+              type="text"
+              v-model="deliveryAddress.contactName"
+              placeholder="联系人姓名"
+          />
+        </div>
+      </li>
+      <li>
+        <div class="title">性别：</div>
+        <div class="content" style="font-size: 3vw">
+          <input
+              type="radio"
+              v-model="deliveryAddress.contactSex"
+              value="1"
+              style="width: 6vw; height: 3.2vw"
+              checked
+          />男
+          <input
+              type="radio"
+              v-model="deliveryAddress.contactSex"
+              value="0"
+              style="width: 6vw; height: 3.2vw"
+          />女
+        </div>
+      </li>
+      <li>
+        <div class="title">电话：</div>
+        <div class="content">
+          <input
+              type="tel"
+              v-model="deliveryAddress.contactTel"
+              placeholder="电话"
+          />
+        </div>
+      </li>
+      <li>
+        <div class="title">收货地址：</div>
+        <div class="content">
+          <input
+              type="text"
+              v-model="deliveryAddress.address"
+              placeholder="收货地址"
+          />
+        </div>
+      </li>
+    </ul>
+
+    <div class="button-add">
+      <button @click="editUserAddress">更新</button>
+    </div>
+
+    <!-- 底部菜单部分 -->
+    <Footer></Footer>
+  </div>
+</template>
+
+<script setup>
+import qs from "qs";
+import {useRouter, useRoute} from "vue-router";
+import {ref, inject} from "vue"; // 移除未使用的 import（initCustomFormatter、computed）
+import {getSessionStorage} from "../common.js";
+
+const axios = inject("axios");
+const router = useRouter();
+const route = useRoute();
+const user = getSessionStorage("user");
+const businessId = route.query.businessId;
+const daId = route.query.daId;
+const deliveryAddress = ref({}) // 正确定义的变量（含y）
+
+const init = () => {
+  // 增加空值判断，避免 daId 为空时发起无效请求
+  if (!daId) {
+    alert("地址ID不能为空！");
+    return;
+  }
+  axios
+      .post(
+          "DeliveryAddressController/getDeliveryAddressById",
+          qs.stringify({daId: daId})
+      )
+      .then((response) => {
+        deliveryAddress.value = response.data || {}; // 兜底，避免赋值为 null/undefined
+      })
+      .catch((error) => {
+        console.error("获取地址信息失败：", error);
+      });
+};
+
+init();
+
+const editUserAddress = () => {
+  // 解构变量，简化代码，同时兜底空值
+  const {contactName, contactTel, address} = deliveryAddress.value || {};
+
+  // 更严谨的空值判断（包含 null/undefined/空字符串）
+  if (!contactName) {
+    alert("请填写联系人姓名!");
+    return;
+  }
+  if (!contactTel) {
+    alert("请填写联系人电话!");
+    return;
+  }
+  if (!address) {
+    alert("请填写收货地址!");
+    return;
+  }
+
+  axios
+      .post(
+          "DeliveryAddressController/updateDeliveryAddress",
+          qs.stringify({
+            daId: deliveryAddress.value.daId,
+            contactName,
+            contactSex: deliveryAddress.value.contactSex,
+            contactTel,
+            address,
+          })
+      )
+      .then((response) => {
+        if (response.data > 0) {
+          alert("更新成功！");
+          router.push({
+            path: "/userAddress",
+            query: {businessId: businessId},
+          });
+        } else {
+          alert("更新失败！");
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+};
+</script>
+
+<style scoped>
+/*************** 总容器 ***************/
+.wrapper {
+  width: 100%;
+  height: 100%;
+}
+
+/*************** header ***************/
+.wrapper header {
+  width: 100%;
+  height: 12vw;
+  background-color: #0097ff;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  color: #fff;
+  font-size: 4.8vw;
+  position: fixed;
+  left: 0;
+  top: 0;
+  /*保证在最上层*/
+  z-index: 1000;
+}
+
+/*************** （表单信息） ***************/
+.wrapper .form-box {
+  width: 100%;
+  margin-top: 12vw;
+}
+
+.wrapper .form-box li {
+  box-sizing: border-box;
+  padding: 4vw 3vw 0vw 3vw;
+  display: flex;
+}
+
+.wrapper .form-box li .title {
+  flex: 0 0 18vw;
+  font-size: 3vw;
+  font-weight: 700;
+  color: #666;
+}
+
+.wrapper .form-box li .content {
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+}
+
+.wrapper .form-box li .content input {
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 4vw;
+  font-size: 3vw;
+}
+
+.wrapper .button-add {
+  box-sizing: border-box;
+  padding: 4vw 3vw 0vw 3vw;
+}
+
+.wrapper .button-add button {
+  width: 100%;
+  height: 10vw;
+  font-size: 3.8vw;
+  font-weight: 700;
+
+  border: none;
+  outline: none;
+  border-radius: 4px;
+  color: #fff;
+  background-color: #38ca73;
+}
+</style>

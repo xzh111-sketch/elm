@@ -1,0 +1,77 @@
+server:
+  port: 8080
+
+mybatis:
+  # 指定 MyBatis 的 Mapper XML 文件位置，修改成你自己的包名
+  mapper-locations: classpath:mappers/*.xml
+  # 指定实体类别名所在包，改成你自己的路径
+  type-aliases-package: com.lin.elm.po
+
+spring:
+  # 本地私密配置放在 application-local.yml（该文件不提交），本文件只保留占位符
+  profiles:
+    active: local
+  datasource:
+    url: jdbc:mysql://localhost:3306/elm?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: 在这里填入你的数据库密码
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  # Redis：秒杀库存预扣（Lua 脚本保证原子性）
+  redis:
+    host: localhost
+    port: 6379
+    timeout: 3000ms
+  # RabbitMQ：秒杀请求异步削峰
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual   # 手动 ack：处理成功才确认，失败进死信队列
+        prefetch: 1
+        concurrency: 1
+        max-concurrency: 4
+
+# ============ 秒杀开关 ============
+seckill:
+  # true  = 走 RabbitMQ 异步下单（削峰，需要先启动 RabbitMQ）
+  # false = 同步下单（功能一样，只是少了削峰，方便没装 MQ 时调试）
+  mq-enabled: true
+
+logging:
+  level:
+    org.springframework: debug
+    com.lin.elm.mapper: debug
+
+# ============ AI 智能客服（DeepSeek）配置 ============
+# api-key
+deepseek:
+  api-key: 在这里填入你的DeepSeek API Key
+  base-url: https://api.deepseek.com
+  model: deepseek-chat
+
+# ============ JWT 登录令牌配置 ============
+jwt:
+  # 签名密钥：至少 32 字节（256 位），真实项目要换成随机字符串并放进环境变量
+  secret: 请填入至少32位的随机字符串（可用 openssl rand -base64 32 生成）
+  # token 有效期：7 天（单位毫秒）
+  expire: 604800000
+
+# ============ 支付宝沙箱支付配置 ============
+# 参数在 https://open.alipay.com 控制台 -> 沙箱环境 里获取，填好后重启后端才会生效
+alipay:
+  # 沙箱 APPID
+  app-id: 在这里填入沙箱APPID
+  # 应用私钥：用官方"支付宝密钥生成工具"生成（RSA2 / PKCS8），要粘成一整行，不能有换行
+  private-key: 在这里填入你的应用私钥（RSA2/PKCS8，粘成一整行）
+  # 支付宝公钥：注意是从沙箱页面复制的"支付宝公钥"，不是你自己生成的应用公钥
+  alipay-public-key: 在这里填入支付宝公钥
+  # 沙箱网关（旧网关 https://openapi.alipaydev.com/gateway.do 也可以）
+  gateway-url: https://openapi-sandbox.dl.alipaydev.com/gateway.do
+  # 异步通知地址：必须公网可访问，用 ngrok/cpolar/natapp 把本地 8080 映射出去
+  # 已填好：你本机 ngrok 隧道地址（注意：ngrok 重启后随机域名会变，变了要改这里）
+  notify-url: https://你的公网域名/api/alipay/notify
+  # 同步跳转地址：用户付款后浏览器回到这个页面（本项目前端 8081 端口 + hash 路由）
+  return-url: http://localhost:8081/#/pay-result
